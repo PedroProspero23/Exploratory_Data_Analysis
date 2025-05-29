@@ -1,0 +1,3 @@
+This project investigates the evolution of soybean exports from Brazil, the United States, and Argentina to China between 2010 and 2023 using official trade data from the UN Comtrade platform. The goal is to identify patterns, trends, and shifts in export dynamics, including the influence of external factors such as trade wars and the COVID-19 pandemic.
+
+This workflow enables the generation of actionable insights using robust and widely adopted tools. It is especially suitable for those working in agribusiness, international trade, and data analysis, offering a replicable methodology for exploring commodity trade patterns.
