@@ -1,121 +1,115 @@
-# Bibliotecas
+# Libraries
 import pandas as pd
 
-# Caminho do arquivo CSV exportado da UN Comtrade
-arquivo = "C:/Users/pedro/OneDrive/Área de Trabalho/Códigos/Exploratory_Data_Analysis/TradeData_5_29_2025_9_6_47.csv"
+# Path to the exported CSV file from UN Comtrade
+file_path = "C:/Users/pedro/OneDrive/Área de Trabalho/Códigos/Exploratory_Data_Analysis/TradeData_5_29_2025_9_6_47.csv"
 
-# Leitura inicial do CSV
-df = pd.read_csv(arquivo)
+# Initial data load
+df = pd.read_csv(file_path)
 
-# Visualizar as primeiras linhas
+# View the first few rows
 print(df.head())
 
-# Verificar nomes das colunas
+# Check column names
 print(df.columns)
 
-# Verificar os tipos de dados de cada coluna 
+# Check data types
 print(df.dtypes)
 
-# Selecionar colunas úteis para análise
-colunas_uteis = [
-    "refPeriodId",     # Ano de referência
-    "reporterCode",    # Código do país exportador
-    "partnerCode",     # Código do país importador
-    "flowCode",        # Código do tipo de fluxo (provavelmente 2 = Exportação)
-    "cmdCode",         # Código da commodity (ex: 1201 para soja)
-    "qtyUnitAbbr",     # Unidade da quantidade
-    "fobvalue",        # Valor FOB
-    "cifvalue"         # Valor CIF
+# Select relevant columns for analysis
+useful_columns = [
+    "refPeriodId",     # Reference year
+    "reporterCode",    # Exporting country code
+    "partnerCode",     # Importing country code
+    "flowCode",        # Flow type code (probably 2 = Export)
+    "cmdCode",         # Commodity code (e.g., 1201 for soybeans)
+    "qtyUnitAbbr",     # Quantity unit
+    "fobvalue",        # FOB value
+    "cifvalue"         # CIF value
 ]
 
-# Criar DataFrame reduzido
-df_reduzido = df[colunas_uteis].copy()
+# Create reduced DataFrame
+df_reduced = df[useful_columns].copy()
 
-# Renomear colunas para facilitar leitura
-df_reduzido.rename(columns={
+# Rename columns for clarity
+df_reduced.rename(columns={
     "refPeriodId": "Year",
-    "reporterCode": "Exporting Country",
-    "partnerCode": "Importing Country",
+    "reporterCode": "Exporting_Country",
+    "partnerCode": "Importing_Country",
     "flowCode": "Flow",
-    "cmdCode": "Commodity Code",
-    "qtyUnitAbbr": "Unity",
-    "fobvalue": "value_fob_usd",
-    "cifvalue": "value_cif_usd"
+    "cmdCode": "Commodity_Code",
+    "qtyUnitAbbr": "Unit",
+    "fobvalue": "FOB_Value_USD",
+    "cifvalue": "CIF_Value_USD"
 }, inplace=True)
 
+# Verify result
+print(df_reduced.head())
 
-# Verificar resultado
-print(df_reduzido.head())
+# Ensure 'Year' is an integer
+df_reduced["Year"] = df_reduced["Year"].astype(int)
 
-# Garantir que o ano esteja como inteiro (corrigido)
-df_reduzido["Year"] = df_reduzido["Year"].astype(int)
+# Check for missing values
+print(df_reduced.isnull().sum())
 
-# Verificar valores nulos por coluna
-print(df_reduzido.isnull().sum())
+# 📌 Detailed diagnostics of zero values
 
+# Total records with Unit == 0
+total_zeros = (df_reduced["Unit"] == 0).sum()
+print(f"🔴 Total records with Unit = 0: {total_zeros}\n")
 
-# 📌 Diagnóstico detalhado de valores 0
+# Breakdown by exporting country
+print("📍 Records with Unit = 0 by exporting country:")
+print(df_reduced[df_reduced["Unit"] == 0]["Exporting_Country"].value_counts(), "\n")
 
-# Total de registros com Unity == 0
-total_zeros = (df_reduzido["Unity"] == 0).sum()
-print(f"🔴 Total geral de registros com Unity = 0: {total_zeros}\n")
+# Breakdown by year
+print("📍 Records with Unit = 0 by year:")
+print(df_reduced[df_reduced["Unit"] == 0]["Year"].value_counts(), "\n")
 
-# Quebras por país exportador
-print("📍 Quantidade de registros com Unity = 0 por país exportador:")
-print(df_reduzido[df_reduzido["Unity"] == 0]["Exporting Country"].value_counts(), "\n")
+# Cross tab by country and year
+print("📍 Cross tab: Exporting country x Year with Unit = 0")
+print(df_reduced[df_reduced["Unit"] == 0].groupby(["Exporting_Country", "Year"]).size())
 
-# Quebras por ano
-print("📍 Quantidade de registros com Unity = 0 por ano:")
-print(df_reduzido[df_reduzido["Unity"] == 0]["Year"].value_counts(), "\n")
+# 📊 Check proportion of zero values in "Unit"
+zeros_unit = (df_reduced["Unit"] == 0).sum()
+total = len(df_reduced)
+percentage = (zeros_unit / total) * 100
 
-# Cruzamento por país e ano
-print("📍 Cruzamento: país exportador x ano com Unity = 0")
-print(df_reduzido[df_reduzido["Unity"] == 0].groupby(["Exporting Country", "Year"]).size())
+print(f"\n🔎 Found {zeros_unit} records with 'Unit' equal to 0 ({percentage:.2f}%).")
 
-# 📊 Verificar proporção de valores 0 em "Unity"
-zeros_unity = (df_reduzido["Unity"] == 0).sum()
-total = len(df_reduzido)
-proporcao = (zeros_unity / total) * 100
+# ✅ Fix if proportion is < 20%
+if percentage < 20:
+    print("✅ Replacing 'Unit' values based on the mean per exporting country...")
 
-print(f"\n🔎 Foram encontrados {zeros_unity} registros com 'Unity' igual a 0 ({proporcao:.2f}%).")
+    # Create a copy column
+    df_reduced["Unit_adjusted"] = df_reduced["Unit"]
 
-# ✅ Corrigir se < 20%
-if proporcao < 20:
-    print("✅ Corrigindo os valores de 'Unity' com base na média por país exportador...")
+    # Compute mean per country excluding zeros
+    country_means = df_reduced[df_reduced["Unit"] > 0].groupby("Exporting_Country")["Unit"].mean()
 
-    # Criar cópia da coluna
-    df_reduzido["Unity_adjusted"] = df_reduzido["Unity"]
+    # Replacement function
+    def replace_zero(row):
+        if row["Unit_adjusted"] == 0:
+            return country_means[row["Exporting_Country"]]
+        return row["Unit_adjusted"]
 
-    # Calcular médias por país, excluindo zeros
-    medias_por_pais = df_reduzido[df_reduzido["Unity"] > 0].groupby("Exporting Country")["Unity"].mean()
-
-    # Função para substituir
-    def substituir_zero(row):
-        if row["Unity_adjusted"] == 0:
-            return medias_por_pais[row["Exporting Country"]]
-        return row["Unity_adjusted"]
-
-    # Aplicar substituição
-    df_reduzido["Unity_adjusted"] = df_reduzido.apply(substituir_zero, axis=1)
-    print("✅ Substituição concluída.")
+    # Apply replacement
+    df_reduced["Unit_adjusted"] = df_reduced.apply(replace_zero, axis=1)
+    print("✅ Replacement completed.")
 else:
-    print("⚠️ Proporção de zeros em 'Unity' acima do limite. Nenhuma substituição aplicada.")
+    print("⚠️ Proportion of zeros in 'Unit' is above the limit. No replacement applied.")
 
+# Check for duplicate rows
+duplicates = df_reduced.duplicated().sum()
+print(f"🔍 Total duplicate rows: {duplicates}")
 
-# Verificar quantidade de linhas duplicadas (linhas idênticas)
-duplicatas = df_reduzido.duplicated().sum()
-print(f"🔍 Total de linhas duplicadas: {duplicatas}")
+# Display duplicates before removal
+print(df_reduced[df_reduced.duplicated()])
 
-# Mostrar as duplicatas (para inspecionar antes de remover)
-print(df_reduzido[df_reduzido.duplicated()])
+# Drop duplicates keeping the first occurrence
+df_cleaned = df_reduced.drop_duplicates()
+print("✅ Duplicates successfully removed!")
 
-# Remover duplicatas mantendo apenas a primeira ocorrência
-df_corrigido = df_reduzido.drop_duplicates()
-print("✅ Duplicatas removidas com sucesso!")
-
-# Garantir que a versão final salva esteja corrigida e sem duplicatas
-df_corrigido = df_reduzido.drop_duplicates().copy()
-
-# Salvar CSV final
-df_corrigido.to_csv("C:/Users/pedro/OneDrive/Área de Trabalho/Códigos/Exploratory_Data_Analysis/clean_data_soyUNComtrade.csv", index=False)
-print("✅ Arquivo salvo com sucesso!")
+# Save cleaned DataFrame to CSV
+df_cleaned.to_csv("C:/Users/pedro/OneDrive/Área de Trabalho/Códigos/Exploratory_Data_Analysis/clean_data_soyUNComtrade.csv", index=False)
+print("✅ File saved successfully!")
